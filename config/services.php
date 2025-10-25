@@ -35,4 +35,39 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Microservicios
+    |--------------------------------------------------------------------------
+    */
+
+    'recepcion' => [
+        'url' => env('MS_RECEPCION_URL', 'http://localhost:8000'),
+        'timeout' => env('MS_RECEPCION_TIMEOUT', 10),
+    ],
+
+    'decision' => [
+        'url' => env('MS_DECISION_URL', 'http://localhost:8002'),
+        'timeout' => env('MS_DECISION_TIMEOUT', 10),
+        'webhook_endpoint' => env('MS_DECISION_WEBHOOK_ENDPOINT', '/api/webhook/despacho'),
+    ],
+
+    'auth' => [
+        'url' => env('MS_AUTH_URL', 'http://localhost:8003'),
+        'timeout' => env('MS_AUTH_TIMEOUT', 10),
+        'verify_endpoint' => env('MS_AUTH_VERIFY_ENDPOINT', '/api/verify-token'),
+    ],
+
+    'websocket' => [
+        'url' => env('MS_WEBSOCKET_URL', 'http://localhost:3000'),
+        'timeout' => env('MS_WEBSOCKET_TIMEOUT', 5),
+        'enabled' => env('MS_WEBSOCKET_ENABLED', true),
+    ],
+
+    'ml' => [
+        'url' => env('ML_SERVICE_URL', 'http://localhost:5000'),
+        'timeout' => env('ML_SERVICE_TIMEOUT', 10),
+        'use_fallback' => env('ML_USE_FALLBACK', true),
+    ],
+
 ];

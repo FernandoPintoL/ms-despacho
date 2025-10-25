@@ -134,9 +134,15 @@ pip install flask scikit-learn numpy pandas joblib python-dotenv flask-cors
 APP_NAME="MS Despacho"
 APP_URL=http://localhost:8001
 
-# Base de Datos
-DB_CONNECTION=mysql
+# Base de Datos (SQL Server)
+DB_CONNECTION=sqlsrv
+DB_HOST=127.0.0.1
+DB_PORT=1433
 DB_DATABASE=ms_despacho
+DB_USERNAME=sa
+DB_PASSWORD=
+DB_ENCRYPT=yes
+DB_TRUST_SERVER_CERTIFICATE=true
 
 # Sanctum
 SANCTUM_STATEFUL_DOMAINS=localhost:3000,localhost:8000

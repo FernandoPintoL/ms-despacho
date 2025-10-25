@@ -113,13 +113,16 @@ ml-service/
 APP_NAME="MS Despacho"
 APP_URL=http://localhost:8001
 
-# Base de datos
-DB_CONNECTION=mysql
+# Base de datos (SQL Server)
+DB_CONNECTION=sqlsrv
 DB_HOST=127.0.0.1
-DB_PORT=3306
+DB_PORT=1433
 DB_DATABASE=ms_despacho
-DB_USERNAME=root
+DB_USERNAME=sa
 DB_PASSWORD=
+DB_CHARSET=utf8
+DB_ENCRYPT=yes
+DB_TRUST_SERVER_CERTIFICATE=true
 
 # Sanctum
 SANCTUM_STATEFUL_DOMAINS=localhost:3000,localhost:8000
