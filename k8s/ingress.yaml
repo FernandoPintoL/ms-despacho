@@ -1,0 +1,93 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ms-despacho-ingress
+  namespace: ambulance-system
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "30"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - api.ambulance.com
+    secretName: ms-despacho-tls
+  rules:
+  - host: api.ambulance.com
+    http:
+      paths:
+      - path: /api/v1(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: ms-despacho-service
+            port:
+              number: 80
+
+---
+
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ms-despacho-cert
+  namespace: ambulance-system
+spec:
+  secretName: ms-despacho-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  dnsNames:
+  - api.ambulance.com
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ms-despacho-network-policy
+  namespace: ambulance-system
+spec:
+  podSelector:
+    matchLabels:
+      app: ms-despacho
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ambulance-system
+    - podSelector:
+        matchLabels:
+          app: nginx-ingress
+    ports:
+    - protocol: TCP
+      port: 9000
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: ambulance-system
+    ports:
+    - protocol: TCP
+      port: 5432
+    - protocol: TCP
+      port: 6379
+    - protocol: TCP
+      port: 9000
+    - protocol: TCP
+      port: 5000
+  - to:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53

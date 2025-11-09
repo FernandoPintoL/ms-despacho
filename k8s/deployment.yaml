@@ -1,0 +1,283 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ms-despacho
+  namespace: ambulance-system
+  labels:
+    app: ms-despacho
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ms-despacho
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: ms-despacho
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9000"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: ms-despacho
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 33
+        fsGroup: 33
+
+      containers:
+      - name: ms-despacho
+        image: registry.example.com/ms-despacho:latest
+        imagePullPolicy: IfNotPresent
+
+        ports:
+        - name: fpm
+          containerPort: 9000
+          protocol: TCP
+
+        env:
+        # Application
+        - name: APP_NAME
+          value: "MS Despacho"
+        - name: APP_ENV
+          value: "production"
+        - name: APP_DEBUG
+          value: "false"
+        - name: APP_URL
+          value: "http://api.ambulance.com"
+
+        # Database
+        - name: DB_CONNECTION
+          value: "pgsql"
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: ms-despacho-config
+              key: db_host
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: ms-despacho-config
+              key: db_database
+        - name: DB_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: ms-despacho-config
+              key: db_username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ms-despacho-secret
+              key: db_password
+
+        # Redis
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: ms-despacho-config
+              key: redis_host
+        - name: REDIS_PORT
+          value: "6379"
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ms-despacho-secret
+              key: redis_password
+              optional: true
+
+        # Cache & Queue
+        - name: CACHE_STORE
+          value: "redis"
+        - name: QUEUE_CONNECTION
+          value: "redis"
+        - name: BROADCAST_DRIVER
+          value: "reverb"
+
+        # Microservices URLs
+        - name: MS_AUTH_URL
+          valueFrom:
+            configMapKeyRef:
+              name: ms-despacho-config
+              key: ms_auth_url
+        - name: MS_DECISION_URL
+          valueFrom:
+            configMapKeyRef:
+              name: ms-despacho-config
+              key: ms_decision_url
+        - name: MS_WEBSOCKET_URL
+          valueFrom:
+            configMapKeyRef:
+              name: ms-despacho-config
+              key: ms_websocket_url
+        - name: ML_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: ms-despacho-config
+              key: ml_service_url
+
+        # Logging
+        - name: LOG_CHANNEL
+          value: "stack"
+        - name: LOG_LEVEL
+          value: "info"
+
+        # Performance
+        - name: OPCACHE_VALIDATE_TIMESTAMPS
+          value: "0"
+
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: fpm
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: fpm
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 2
+          failureThreshold: 2
+
+        startupProbe:
+          httpGet:
+            path: /api/health
+            port: fpm
+            scheme: HTTP
+          initialDelaySeconds: 0
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 30
+
+        volumeMounts:
+        - name: storage
+          mountPath: /app/storage
+          subPath: ms-despacho
+        - name: logs
+          mountPath: /app/storage/logs
+          subPath: ms-despacho
+
+        # Security context for container
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 33
+          capabilities:
+            drop:
+              - ALL
+
+      # Init container to run migrations
+      initContainers:
+      - name: migrate
+        image: registry.example.com/ms-despacho:latest
+        imagePullPolicy: IfNotPresent
+        command:
+          - sh
+          - -c
+          - "php artisan migrate --force"
+        env:
+        - name: DB_CONNECTION
+          value: "pgsql"
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: ms-despacho-config
+              key: db_host
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ms-despacho-secret
+              key: db_password
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+
+      volumes:
+      - name: storage
+        emptyDir: {}
+      - name: logs
+        emptyDir: {}
+
+      # Pod disruption budget for high availability
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - ms-despacho
+              topologyKey: kubernetes.io/hostname
+
+      terminationGracePeriodSeconds: 30
+      restartPolicy: Always
+      dnsPolicy: ClusterFirst
+
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ms-despacho
+  namespace: ambulance-system
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ms-despacho-config
+  namespace: ambulance-system
+data:
+  db_host: "postgres.ambulance-system.svc.cluster.local"
+  db_database: "despacho_db"
+  db_username: "despacho_user"
+  redis_host: "redis.ambulance-system.svc.cluster.local"
+  ms_auth_url: "http://ms-auth-service.ambulance-system.svc.cluster.local"
+  ms_decision_url: "http://ms-decision-service.ambulance-system.svc.cluster.local"
+  ms_websocket_url: "http://ms-websocket-service.ambulance-system.svc.cluster.local"
+  ml_service_url: "http://ms-ml-service.ambulance-system.svc.cluster.local:5000"
+
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ms-despacho-secret
+  namespace: ambulance-system
+type: Opaque
+data:
+  # base64 encoded values - CHANGE IN PRODUCTION
+  db_password: ZGVzcGFjaG9fcGFzcw==  # despacho_pass
+  redis_password: ""  # Empty if no password
