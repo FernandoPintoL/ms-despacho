@@ -6,6 +6,9 @@ use App\Events\AmbulanciaUbicacionActualizada;
 use App\Events\DespachoCreado;
 use App\Events\DespachoEstadoCambiado;
 use App\Events\DespachoFinalizado;
+use App\Events\PersonalActualizado;
+use App\Events\PersonalCreado;
+use App\Events\PersonalEstadoCambiado;
 use App\Listeners\EnviarNotificacionDespachoCreado;
 use App\Listeners\EnviarNotificacionEstadoCambiado;
 use App\Listeners\ProcesarDespachoFinalizado;
@@ -28,6 +31,10 @@ class EventServiceProvider extends ServiceProvider
         DespachoFinalizado::class => [
             ProcesarDespachoFinalizado::class,
         ],
+        // Personal events - transmitted automatically via broadcasting
+        PersonalCreado::class => [],
+        PersonalActualizado::class => [],
+        PersonalEstadoCambiado::class => [],
         // AmbulanciaUbicacionActualizada se transmite automáticamente via broadcasting
     ];
 

@@ -11,7 +11,7 @@ class ActualizarPersonalMutation extends Mutation
 {
     protected $attributes = [
         'name' => 'actualizarPersonal',
-        'description' => 'Actualizar datos de personal',
+        'description' => 'Actualizar un personal',
     ];
 
     public function type(): Type
@@ -33,6 +33,10 @@ class ActualizarPersonalMutation extends Mutation
             'apellido' => [
                 'type' => Type::string(),
                 'description' => 'Apellido del personal',
+            ],
+            'rol' => [
+                'type' => Type::string(),
+                'description' => 'Rol: paramedico, conductor, medico, enfermero',
             ],
             'especialidad' => [
                 'type' => Type::string(),
@@ -56,31 +60,37 @@ class ActualizarPersonalMutation extends Mutation
     public function resolve($root, array $args)
     {
         $personal = Personal::findOrFail($args['id']);
-
+        
+        // Registrar cambios
+        $cambios = [];
+        
         // Actualizar solo los campos proporcionados
-        $updateData = [];
+        if (isset($args['nombre']) && $personal->nombre !== $args['nombre']) {
+            $cambios['nombre'] = $args['nombre'];
+        }
+        if (isset($args['apellido']) && $personal->apellido !== $args['apellido']) {
+            $cambios['apellido'] = $args['apellido'];
+        }
+        if (isset($args['rol']) && $personal->rol !== $args['rol']) {
+            $cambios['rol'] = $args['rol'];
+        }
+        if (isset($args['especialidad']) && $personal->especialidad !== $args['especialidad']) {
+            $cambios['especialidad'] = $args['especialidad'];
+        }
+        if (isset($args['experiencia']) && $personal->experiencia !== $args['experiencia']) {
+            $cambios['experiencia'] = $args['experiencia'];
+        }
+        if (isset($args['telefono']) && $personal->telefono !== $args['telefono']) {
+            $cambios['telefono'] = $args['telefono'];
+        }
+        if (isset($args['email']) && $personal->email !== $args['email']) {
+            $cambios['email'] = $args['email'];
+        }
 
-        if (isset($args['nombre'])) {
-            $updateData['nombre'] = $args['nombre'];
-        }
-        if (isset($args['apellido'])) {
-            $updateData['apellido'] = $args['apellido'];
-        }
-        if (isset($args['especialidad'])) {
-            $updateData['especialidad'] = $args['especialidad'];
-        }
-        if (isset($args['experiencia'])) {
-            $updateData['experiencia'] = $args['experiencia'];
-        }
-        if (isset($args['telefono'])) {
-            $updateData['telefono'] = $args['telefono'];
-        }
-        if (isset($args['email'])) {
-            $updateData['email'] = $args['email'];
-        }
-
-        if (!empty($updateData)) {
-            $personal->update($updateData);
+        // Si hay cambios, actualizar y disparar evento
+        if (!empty($cambios)) {
+            $personal->update($cambios);
+            $personal->dispatchUpdated($cambios);
         }
 
         return $personal;

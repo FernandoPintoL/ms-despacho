@@ -78,6 +78,9 @@ class CrearPersonalMutation extends Mutation
             'estado' => 'disponible',
         ]);
 
+        // Disparar evento de creación
+        $personal->dispatchCreated();
+
         return $personal;
     }
 }

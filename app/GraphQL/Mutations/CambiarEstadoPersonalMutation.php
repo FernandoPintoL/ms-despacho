@@ -36,13 +36,9 @@ class CambiarEstadoPersonalMutation extends Mutation
     public function resolve($root, array $args)
     {
         $personal = Personal::findOrFail($args['id']);
-
-        $estadosValidos = ['disponible', 'en_servicio', 'descanso', 'vacaciones'];
-        if (!in_array($args['estado'], $estadosValidos)) {
-            throw new \Exception("Estado inválido. Estados válidos: " . implode(', ', $estadosValidos));
-        }
-
-        $personal->update(['estado' => $args['estado']]);
+        
+        // Cambiar estado (dispara el evento)
+        $personal->cambiarEstado($args['estado']);
 
         return $personal;
     }

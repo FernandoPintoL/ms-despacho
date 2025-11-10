@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Events\PersonalActualizado;
+use App\Events\PersonalCreado;
+use App\Events\PersonalEstadoCambiado;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -75,7 +78,7 @@ class Personal extends Model
      */
     public function marcarEnServicio(): void
     {
-        $this->update(['estado' => 'en_servicio']);
+        $this->cambiarEstado('en_servicio');
     }
 
     /**
@@ -83,7 +86,35 @@ class Personal extends Model
      */
     public function marcarDisponible(): void
     {
-        $this->update(['estado' => 'disponible']);
+        $this->cambiarEstado('disponible');
+    }
+
+    /**
+     * Cambiar estado y disparar evento
+     */
+    public function cambiarEstado(string $nuevoEstado): void
+    {
+        $estadoAnterior = $this->estado;
+        $this->update(['estado' => $nuevoEstado]);
+
+        // Disparar evento
+        event(new PersonalEstadoCambiado($this, $estadoAnterior, $nuevoEstado));
+    }
+
+    /**
+     * Disparar evento de creación
+     */
+    public function dispatchCreated(): void
+    {
+        event(new PersonalCreado($this));
+    }
+
+    /**
+     * Disparar evento de actualización
+     */
+    public function dispatchUpdated(array $cambios = []): void
+    {
+        event(new PersonalActualizado($this, $cambios));
     }
 
     /**
