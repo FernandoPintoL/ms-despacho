@@ -1,9 +1,17 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git commit -m \"$(cat <<''EOF''\nfeat: Implementar subtareas 1.1 y 1.2 - Rastreo GPS\n\nSubtarea 1.1: Crear mutation GraphQL para grabar GPS\n- Agregar mutation RecordGpsLocation a mutations.ts\n- Incluir parámetros: dispatchId, latitude, longitude, velocidad, altitud, precision\n- Retorna punto de rastreo guardado con timestamp\n\nSubtarea 1.2: Crear hook useGpsTracking\n- Hook personalizado para gestionar Geolocation API del navegador\n- Métodos: startTracking, stopTracking, recordLocation\n- Polling automático cada 5 segundos (configurable)\n- Conversión de velocidad m/s a km/h\n- Manejo robusto de permisos y errores\n- Cleanup automático en unmount\n\nAgregar método recordGpsLocation a dispatchRepository\n- Comunica con GraphQL API\n- Envia coordenadas con precisión y altitud\n\nCambios:\n- src/data/repositories/mutations.ts (+32 líneas)\n- src/data/repositories/dispatch-repository.ts (+26 líneas)\n- src/application/hooks/useGpsTracking.ts (+213 líneas NEW)\n\n🤖 Generated with Claude Code\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(git commit:*)",
-      "Bash(find:*)"
+      "Bash(npm install:*)",
+      "Bash(npm ls:*)",
+      "Bash(npm run build:*)",
+      "Bash(taskkill /F /FI \"WINDOWTITLE eq *npm*\")",
+      "Bash(npm start)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(curl:*)",
+      "Bash(cat:*)",
+      "Bash(KillShell 9f3f59)"
     ],
     "deny": [],
     "ask": []

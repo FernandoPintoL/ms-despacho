@@ -23,7 +23,7 @@ class DespachoQuery extends Query
     {
         return [
             'id' => [
-                'type' => Type::nonNull(Type::int()),
+                'type' => Type::nonNull(Type::id()),  // Changed from Type::int() for Federation compatibility
                 'description' => 'ID del despacho',
             ],
         ];

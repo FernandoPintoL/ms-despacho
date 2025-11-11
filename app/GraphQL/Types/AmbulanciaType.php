@@ -10,7 +10,7 @@ class AmbulanciaType extends GraphQLType
 {
     protected $attributes = [
         'name' => 'Ambulancia',
-        'description' => 'Ambulancia del sistema',
+        'description' => 'Ambulancia del sistema - Apollo Federation Subgraph Entity',
         'model' => Ambulancia::class,
     ];
 
@@ -18,8 +18,8 @@ class AmbulanciaType extends GraphQLType
     {
         return [
             'id' => [
-                'type' => Type::nonNull(Type::int()),
-                'description' => 'ID de la ambulancia',
+                'type' => Type::nonNull(Type::id()),  // Changed from Type::int() for Federation
+                'description' => 'ID de la ambulancia (Federation Key)',
             ],
             'placa' => [
                 'type' => Type::nonNull(Type::string()),
@@ -29,9 +29,12 @@ class AmbulanciaType extends GraphQLType
                 'type' => Type::nonNull(Type::string()),
                 'description' => 'Modelo de la ambulancia',
             ],
-            'tipo_ambulancia' => [
+            'tipoAmbulancia' => [
                 'type' => Type::nonNull(Type::string()),
                 'description' => 'Tipo: basica, intermedia, avanzada, uci',
+                'resolve' => function ($root) {
+                    return $root->tipo_ambulancia;
+                },
             ],
             'estado' => [
                 'type' => Type::nonNull(Type::string()),
@@ -44,33 +47,39 @@ class AmbulanciaType extends GraphQLType
                     return $root->caracteristicas ? json_encode($root->caracteristicas) : null;
                 },
             ],
-            'ubicacion_actual_lat' => [
+            'ubicacionActualLat' => [
                 'type' => Type::float(),
                 'description' => 'Latitud actual',
+                'resolve' => function ($root) {
+                    return $root->ubicacion_actual_lat;
+                },
             ],
-            'ubicacion_actual_lng' => [
+            'ubicacionActualLng' => [
                 'type' => Type::float(),
                 'description' => 'Longitud actual',
+                'resolve' => function ($root) {
+                    return $root->ubicacion_actual_lng;
+                },
             ],
-            'ultima_actualizacion' => [
+            'ultimaActualizacion' => [
                 'type' => Type::string(),
                 'description' => 'Última actualización de ubicación',
                 'resolve' => function ($root) {
-                    return $root->ultima_actualizacion?->toIso8601String();
+                    return $root->ultima_actualizacion ? $root->ultima_actualizacion->format('Y-m-d H:i:s') : null;
                 },
             ],
-            'created_at' => [
+            'createdAt' => [
                 'type' => Type::string(),
                 'description' => 'Fecha de creación',
                 'resolve' => function ($root) {
-                    return $root->created_at->toIso8601String();
+                    return $root->created_at->format('Y-m-d H:i:s');
                 },
             ],
-            'updated_at' => [
+            'updatedAt' => [
                 'type' => Type::string(),
                 'description' => 'Fecha de actualización',
                 'resolve' => function ($root) {
-                    return $root->updated_at->toIso8601String();
+                    return $root->updated_at->format('Y-m-d H:i:s');
                 },
             ],
         ];

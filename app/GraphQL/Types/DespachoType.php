@@ -11,7 +11,7 @@ class DespachoType extends GraphQLType
 {
     protected $attributes = [
         'name' => 'Despacho',
-        'description' => 'Despacho de ambulancia',
+        'description' => 'Despacho de ambulancia - Apollo Federation Subgraph Entity',
         'model' => Despacho::class,
     ];
 
@@ -19,84 +19,117 @@ class DespachoType extends GraphQLType
     {
         return [
             'id' => [
-                'type' => Type::nonNull(Type::int()),
-                'description' => 'ID del despacho',
+                'type' => Type::nonNull(Type::id()),  // Changed from Type::int() to Type::id() for Federation
+                'description' => 'ID del despacho (Federation Key)',
             ],
-            'solicitud_id' => [
-                'type' => Type::int(),
+            'solicitudId' => [
+                'type' => Type::id(),
                 'description' => 'ID de la solicitud (MS Recepción)',
+                'resolve' => function ($root) {
+                    return $root->solicitud_id ? (string)$root->solicitud_id : null;
+                },
             ],
             'ambulancia' => [
                 'type' => GraphQL::type('Ambulancia'),
                 'description' => 'Ambulancia asignada',
             ],
-            'personal_asignado' => [
+            'personalAsignado' => [
                 'type' => Type::listOf(GraphQL::type('Personal')),
                 'description' => 'Personal asignado al despacho',
+                'resolve' => function ($root) {
+                    return $root->personal_asignado ?? $root->personalAsignado;
+                },
             ],
-            'fecha_solicitud' => [
+            'fechaSolicitud' => [
                 'type' => Type::string(),
                 'description' => 'Fecha de solicitud',
                 'resolve' => function ($root) {
-                    return $root->fecha_solicitud?->toIso8601String();
+                    return $root->fecha_solicitud ? $root->fecha_solicitud->format('Y-m-d H:i:s') : null;
                 },
             ],
-            'fecha_asignacion' => [
+            'fechaAsignacion' => [
                 'type' => Type::string(),
                 'description' => 'Fecha de asignación',
                 'resolve' => function ($root) {
-                    return $root->fecha_asignacion?->toIso8601String();
+                    return $root->fecha_asignacion ? $root->fecha_asignacion->format('Y-m-d H:i:s') : null;
                 },
             ],
-            'fecha_llegada' => [
+            'fechaLlegada' => [
                 'type' => Type::string(),
                 'description' => 'Fecha de llegada al sitio',
                 'resolve' => function ($root) {
-                    return $root->fecha_llegada?->toIso8601String();
+                    return $root->fecha_llegada ? $root->fecha_llegada->format('Y-m-d H:i:s') : null;
                 },
             ],
-            'fecha_finalizacion' => [
+            'fechaFinalizacion' => [
                 'type' => Type::string(),
                 'description' => 'Fecha de finalización',
                 'resolve' => function ($root) {
-                    return $root->fecha_finalizacion?->toIso8601String();
+                    return $root->fecha_finalizacion ? $root->fecha_finalizacion->format('Y-m-d H:i:s') : null;
                 },
             ],
-            'ubicacion_origen_lat' => [
+            'ubicacionOrigenLat' => [
                 'type' => Type::nonNull(Type::float()),
                 'description' => 'Latitud origen',
+                'resolve' => function ($root) {
+                    return $root->ubicacion_origen_lat;
+                },
             ],
-            'ubicacion_origen_lng' => [
+            'ubicacionOrigenLng' => [
                 'type' => Type::nonNull(Type::float()),
                 'description' => 'Longitud origen',
+                'resolve' => function ($root) {
+                    return $root->ubicacion_origen_lng;
+                },
             ],
-            'direccion_origen' => [
+            'direccionOrigen' => [
                 'type' => Type::string(),
                 'description' => 'Dirección origen',
+                'resolve' => function ($root) {
+                    return $root->direccion_origen;
+                },
             ],
-            'ubicacion_destino_lat' => [
+            'ubicacionDestinoLat' => [
                 'type' => Type::float(),
                 'description' => 'Latitud destino',
+                'resolve' => function ($root) {
+                    return $root->ubicacion_destino_lat;
+                },
             ],
-            'ubicacion_destino_lng' => [
+            'ubicacionDestinoLng' => [
                 'type' => Type::float(),
                 'description' => 'Longitud destino',
+                'resolve' => function ($root) {
+                    return $root->ubicacion_destino_lng;
+                },
             ],
-            'direccion_destino' => [
+            'direccionDestino' => [
                 'type' => Type::string(),
                 'description' => 'Dirección destino',
+                'resolve' => function ($root) {
+                    return $root->direccion_destino;
+                },
             ],
-            'distancia_km' => [
+            'distanciaKm' => [
                 'type' => Type::float(),
                 'description' => 'Distancia en kilómetros',
+                'resolve' => function ($root) {
+                    return $root->distancia_km;
+                },
             ],
-            'tiempo_estimado_min' => [
+            'tiempoEstimadoMin' => [
                 'type' => Type::int(),
                 'description' => 'Tiempo estimado en minutos',
+                'resolve' => function ($root) {
+                    return $root->tiempo_estimado_min;
+                },
             ],
-            'tiempo_real_min' => [
+            'tiempoRealMin' => [
                 'type' => Type::int(),
                 'description' => 'Tiempo real en minutos',
+                'resolve' => function ($root) {
+                    return $root->tiempo_real_min;
+                },
             ],
             'estado' => [
                 'type' => Type::nonNull(Type::string()),
@@ -118,18 +151,18 @@ class DespachoType extends GraphQLType
                 'type' => Type::string(),
                 'description' => 'Observaciones',
             ],
-            'datos_adicionales' => [
+            'datosAdicionales' => [
                 'type' => Type::string(),
                 'description' => 'Datos adicionales en JSON',
                 'resolve' => function ($root) {
                     return $root->datos_adicionales ? json_encode($root->datos_adicionales) : null;
                 },
             ],
-            'created_at' => [
+            'createdAt' => [
                 'type' => Type::string(),
                 'description' => 'Fecha de creación',
                 'resolve' => function ($root) {
-                    return $root->created_at->toIso8601String();
+                    return $root->created_at->format('Y-m-d H:i:s');
                 },
             ],
         ];

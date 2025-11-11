@@ -1,0 +1,215 @@
+ANALISIS EXHAUSTIVO DE ESTANDARES DE CODIFICACION - MS-DESPACHO
+
+RESUMEN EJECUTIVO:
+==================
+
+1. ESTILO DE CODIGO PHP:
+- Indentación: 4 espacios (no tabs)
+- Máx línea: ~120 caracteres (flexible)
+- Llaves: K&R Style (apertura misma línea, cierre nueva línea)
+- Type Hints: OBLIGATORIO en todos los métodos
+- Docblocks: PHPDoc en métodos públicos
+- Espacios alrededor de operadores binarios
+
+2. ARQUITECTURA:
+- MVC: Models (Eloquent) → Controllers → Views (Inertia.js)
+- Service Layer: AsignacionService, GpsService, AuthService
+- Event-Driven: Events → Listeners → Jobs (queue)
+- Dependency Injection: Constructor injection con typed properties
+- Composición > Herencia
+- Scopes: Query objects en modelos
+
+3. BASE DE DATOS:
+- Tablas: Plural snake_case (ambulancias, despachos, personal)
+- Columnas: snake_case (ubicacion_origen_lat)
+- Migraciones: YYYY_MM_DD_HHMMSS formato
+- Soft Deletes: Habilitados en modelos
+- Timestamps: created_at, updated_at automáticos
+- Índices en campos frecuentes
+
+4. SEGURIDAD:
+- Validación: Validator Facade + FormRequest classes
+- Autenticación: Token-based (microservicio) + Fortify (local)
+- Prevención SQL Injection: Eloquent + bindings automáticos
+- CORS: Automático con Laravel
+- Enums en BD: Valores válidos garantizados
+
+5. TESTING:
+- Estructura: Feature (integración) + Unit tests
+- Framework: Pest + PHPUnit
+- Convención: test_{acción}_{escenario}
+- Patrón AAA: Arrange-Act-Assert
+- Use RefreshDatabase trait
+
+6. GRAPHQL:
+- Tipos: CamelCase fields en schema
+- Queries: Filtering, sorting, relations
+- Mutations: Validación en args
+- Conversión: snake_case (BD) → camelCase (GraphQL)
+- Apollo Federation compatible
+
+7. CONVENCIONES:
+- Variables: camelCase
+- Constantes: UPPER_SNAKE_CASE (si existen)
+- Funciones: camelCase
+- Clases: PascalCase
+- Namespaces: PSR-4
+- Imports: Alfabético, grouped por origen
+
+8. TRATAMIENTO ERRORES:
+- Try-Catch con DB::transaction
+- Logging contextual con Facades\Log
+- Códigos HTTP apropiados (201, 422, 503, etc)
+- Re-lanzar excepciones cuando sea necesario
+
+ARCHIVOS IMPORTANTES ANALIZADOS:
+=================================
+- app/Models/Despacho.php
+- app/Services/AsignacionService.php
+- app/Http/Controllers/Api/DespachoController.php
+- app/GraphQL/Types/DespachoType.php
+- app/GraphQL/Mutations/CrearDespachoMutation.php
+- app/GraphQL/Queries/DespachosQuery.php
+- database/migrations/2025_10_25_052103_create_despachos_table.php
+- tests/Feature/DespachoApiTest.php
+- .editorconfig
+- composer.json
+- phpunit.xml
+
+TABLAS DE RESUMEN:
+==================
+
+ESTANDARES PHP:
+┌─────────────────┬──────────────────┬──────────────────┐
+│ Aspecto         │ Estándar         │ Implementado     │
+├─────────────────┼──────────────────┼──────────────────┤
+│ Indentación     │ 4 spaces         │ ✓ Consistente    │
+│ Type Hints      │ OBLIGATORIO      │ ✓ 100%           │
+│ Docblocks       │ PHPDoc           │ ✓ Métodos críticos
+│ Namespaces      │ PSR-4            │ ✓ Correcto       │
+│ Variables       │ camelCase        │ ✓ Consistente    │
+│ Funciones       │ camelCase        │ ✓ Consistente    │
+│ Clases          │ PascalCase       │ ✓ Consistente    │
+│ Constantes      │ UPPER_SNAKE_CASE │ ✓ Si existen    │
+└─────────────────┴──────────────────┴──────────────────┘
+
+CONVENCIONES BD:
+┌──────────────────┬──────────────────┬──────────────────┐
+│ Elemento         │ Convención       │ Ejemplo          │
+├──────────────────┼──────────────────┼──────────────────┤
+│ Tablas           │ Plural snake_case│ despachos        │
+│ Columnas         │ snake_case       │ ubicacion_lat    │
+│ Foreign Keys     │ tabla_sing_id    │ ambulancia_id    │
+│ Soft Deletes     │ Habilitado       │ deleted_at       │
+│ Timestamps       │ Siempre          │ created_at, etc  │
+│ Migraciones      │ YYYY_MM_DD_HH... │ 2025_10_25_...   │
+│ Índices          │ Campos frecuentes│ estado, fecha     │
+└──────────────────┴──────────────────┴──────────────────┘
+
+PATRONES IMPLEMENTADOS:
+========================
+1. MVC (Model-View-Controller)
+2. Service Layer Pattern
+3. Repository Pattern (implícito en Eloquent)
+4. Event-Driven Architecture
+5. Query Object Pattern (Scopes)
+6. Job Queue Pattern
+7. Facade Pattern
+8. Dependency Injection (Constructor)
+
+EJEMPLOS DE CODIGO:
+====================
+
+Type Hints:
+-----------
+public function encontrarAmbulanciaMasCercana(
+    float $latOrigen,
+    float $lngOrigen,
+    ?string $tipoRequerido = null,
+    float $radioMaximoKm = 50
+): ?array {
+    // Todos los parámetros tienen tipos
+    // Return type nullable array
+}
+
+Validación:
+-----------
+$validator = Validator::make($request->all(), [
+    'ubicacion_origen_lat' => 'required|numeric|between:-90,90',
+    'prioridad' => 'nullable|in:baja,media,alta,critica',
+]);
+
+if ($validator->fails()) {
+    return response()->json(['error' => '...'], 422);
+}
+
+Logging:
+--------
+Log::info('Despacho creado', [
+    'despacho_id' => $despacho->id,
+    'ambulancia_id' => $ambulancia->id,
+    'distancia_km' => $distanciaKm
+]);
+
+Transacciones:
+--------------
+DB::beginTransaction();
+try {
+    // Operaciones
+    DB::commit();
+} catch (\Exception $e) {
+    DB::rollBack();
+    Log::error('Error', ['message' => $e->getMessage()]);
+    throw $e;
+}
+
+GraphQL Query:
+--------------
+{
+  despachos(estado: "en_camino", limit: 10) {
+    id
+    estado
+    ambulancia { id placa }
+    personalAsignado { id nombre }
+  }
+}
+
+Testing:
+--------
+public function test_create_despacho(): void
+{
+    $response = $this->postJson('/api/v1/despachos', [
+        'ubicacion_origen_lat' => -16.5,
+        'ubicacion_origen_lng' => -68.15,
+    ]);
+    
+    $response->assertStatus(201);
+    $this->assertDatabaseHas('despachos', ['estado' => 'asignado']);
+}
+
+CONCLUSIONES:
+===============
+- Código bien estructurado y consistente
+- Estándares modernos de PHP 8.x
+- Architecture sólida con separación de responsabilidades
+- Testing completo con Feature + Unit tests
+- Seguridad en validación y autenticación
+- Logging contextual para debugging
+- Compatible con Apollo Federation (GraphQL)
+- Fácil de mantener y escalar
+
+FORTALEZAS:
+- Strict typing obligatorio
+- Validación en múltiples capas
+- Event-driven para loose coupling
+- Documentación con Docblocks
+- Tests con buena cobertura
+- GraphQL moderno y bien estructurado
+
+AREAS DE MEJORA:
+- Implementar API Resources para transformación
+- Query Builder classes para queries complejas
+- Documentación OpenAPI/Swagger
+- Rate limiting en middlewares
+- Estrategia de caching
+- Model events para operaciones automáticas

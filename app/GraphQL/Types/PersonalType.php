@@ -10,7 +10,7 @@ class PersonalType extends GraphQLType
 {
     protected $attributes = [
         'name' => 'Personal',
-        'description' => 'Personal médico del sistema',
+        'description' => 'Personal médico del sistema - Apollo Federation Subgraph Entity',
         'model' => Personal::class,
     ];
 
@@ -18,8 +18,8 @@ class PersonalType extends GraphQLType
     {
         return [
             'id' => [
-                'type' => Type::nonNull(Type::int()),
-                'description' => 'ID del personal',
+                'type' => Type::nonNull(Type::id()),  // Changed from Type::int() for Federation
+                'description' => 'ID del personal (Federation Key)',
             ],
             'nombre' => [
                 'type' => Type::nonNull(Type::string()),
@@ -29,7 +29,7 @@ class PersonalType extends GraphQLType
                 'type' => Type::nonNull(Type::string()),
                 'description' => 'Apellido',
             ],
-            'nombre_completo' => [
+            'nombreCompleto' => [
                 'type' => Type::string(),
                 'description' => 'Nombre completo',
                 'resolve' => function ($root) {
@@ -64,11 +64,11 @@ class PersonalType extends GraphQLType
                 'type' => Type::string(),
                 'description' => 'Email',
             ],
-            'created_at' => [
+            'createdAt' => [
                 'type' => Type::string(),
                 'description' => 'Fecha de creación',
                 'resolve' => function ($root) {
-                    return $root->created_at->toIso8601String();
+                    return $root->created_at->format('Y-m-d H:i:s');
                 },
             ],
         ];
