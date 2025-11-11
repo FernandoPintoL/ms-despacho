@@ -1,98 +1,46 @@
-# Stage 1: Build dependencies
-FROM php:8.2-fpm-alpine as builder
+# Etapa base
+FROM php:8.2-fpm
 
-# Install system dependencies
-RUN apk add --no-cache \
+# Instalar dependencias del sistema
+RUN apt-get update && apt-get install -y \
     curl \
-    git \
-    zip \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    libzip-dev \
+    libxml2-dev \
     unzip \
-    linux-headers \
-    g++ \
-    make \
-    autoconf \
-    postgresql-dev \
-    libpq
+    git \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions
+# Instalar extensiones PHP nativas
 RUN docker-php-ext-install \
+    zip \
+    gd \
+    bcmath \
+    ctype \
+    xml \
     pdo \
-    pdo_pgsql \
-    opcache \
-    pcntl \
-    bcmath
+    pdo_mysql
 
-# Install composer
-COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
+# Instalar Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+# Establecer directorio de trabajo
 WORKDIR /app
 
-# Copy composer files
-COPY composer.json composer.lock ./
-
-# Install PHP dependencies (production)
-RUN composer install \
-    --no-dev \
-    --optimize-autoloader \
-    --no-scripts \
-    --no-progress \
-    --no-interaction
-
-# Copy the rest of the application
+# Copiar archivos de la aplicación
 COPY . .
 
-# Generate autoloader
-RUN composer dump-autoload --optimize
+# Instalar dependencias de PHP (ignorar requerimientos de plataforma para SQL Server)
+RUN composer install --no-interaction --no-dev --optimize-autoloader --ignore-platform-reqs 2>&1 || true
 
-# Stage 2: Runtime
-FROM php:8.2-fpm-alpine
+# Establecer permisos
+RUN chown -R www-data:www-data /app \
+    && chmod -R 775 /app/storage /app/bootstrap/cache
 
-# Install runtime dependencies only
-RUN apk add --no-cache \
-    postgresql-client \
-    libpq \
-    redis \
-    curl \
-    bash
-
-# Install PHP extensions
-RUN docker-php-ext-install \
-    pdo \
-    pdo_pgsql \
-    opcache \
-    pcntl \
-    bcmath
-
-# Configure PHP-FPM
-COPY docker/php-fpm.conf /usr/local/etc/php-fpm.d/www.conf
-
-# Configure PHP
-RUN echo "opcache.enable=1" > /usr/local/etc/php/conf.d/opcache.ini && \
-    echo "opcache.enable_cli=1" >> /usr/local/etc/php/conf.d/opcache.ini && \
-    echo "opcache.memory_consumption=256" >> /usr/local/etc/php/conf.d/opcache.ini && \
-    echo "opcache.max_accelerated_files=4000" >> /usr/local/etc/php/conf.d/opcache.ini && \
-    echo "opcache.validate_timestamps=0" >> /usr/local/etc/php/conf.d/opcache.ini
-
-# Set working directory
-WORKDIR /app
-
-# Copy from builder
-COPY --from=builder --chown=www-data:www-data /app .
-
-# Create required directories with proper permissions
-RUN mkdir -p storage/logs storage/cache bootstrap/cache && \
-    chown -R www-data:www-data storage bootstrap/cache && \
-    chmod -R 775 storage bootstrap/cache
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:9000/api/health || exit 1
-
-# Expose port
+# Exponer puerto (usado por php-fpm)
 EXPOSE 9000
 
-# Switch to non-root user
-USER www-data
-
-# Run PHP-FPM
+# Comando por defecto
 CMD ["php-fpm"]

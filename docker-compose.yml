@@ -1,0 +1,40 @@
+services:
+  # Servicio PHP-FPM
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ms-despacho-app
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./:/app
+      - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - despacho-network
+    environment:
+      - DB_HOST=host.docker.internal
+      - DB_PORT=1433
+      - DB_CONNECTION=sqlsrv
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+
+  # Servicio Nginx
+  nginx:
+    image: nginx:alpine
+    container_name: ms-despacho-nginx
+    restart: unless-stopped
+    ports:
+      - "8001:80"
+    volumes:
+      - ./:/app
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+    networks:
+      - despacho-network
+
+networks:
+  despacho-network:
+    driver: bridge
