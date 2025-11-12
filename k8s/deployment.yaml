@@ -1,21 +1,32 @@
+# ============================================
+# Kubernetes Deployment - MS Despacho
+# ============================================
+# Microservicio de despacho y rutas
+# Base de datos: SQL Server
+# Cache: Redis
+# GPS: Integración con servicios de ubicación
+# ============================================
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ms-despacho
-  namespace: ambulance-system
+  namespace: swii-microservices
   labels:
     app: ms-despacho
     version: v1
+    tier: backend
+    component: dispatch
 spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: ms-despacho
+  replicas: 2
   strategy:
     type: RollingUpdate
     rollingUpdate:
       maxSurge: 1
       maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: ms-despacho
   template:
     metadata:
       labels:
@@ -24,116 +35,234 @@ spec:
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9000"
-        prometheus.io/path: "/metrics"
     spec:
-      serviceAccountName: ms-despacho
+      # ============================================
+      # SecurityContext
+      # ============================================
       securityContext:
         runAsNonRoot: true
-        runAsUser: 33
+        runAsUser: 33  # www-data
         fsGroup: 33
 
+      serviceAccountName: ms-despacho
+
+      # ============================================
+      # Init Containers
+      # ============================================
+      initContainers:
+      - name: wait-for-db
+        image: busybox:1.35
+        command: ['sh', '-c', 'until nc -z sql-server-service 1433; do echo waiting for db; sleep 2; done']
+      - name: wait-for-redis
+        image: busybox:1.35
+        command: ['sh', '-c', 'until nc -z redis-service 6379; do echo waiting for redis; sleep 2; done']
+
+      # ============================================
+      # Containers
+      # ============================================
       containers:
       - name: ms-despacho
-        image: registry.example.com/ms-despacho:latest
-        imagePullPolicy: IfNotPresent
+        image: your-registry/ms-despacho:latest
+        imagePullPolicy: Always
 
         ports:
-        - name: fpm
-          containerPort: 9000
+        - containerPort: 9000
+          name: php-fpm
           protocol: TCP
 
+        # ============================================
+        # Environment Variables
+        # ============================================
         env:
-        # Application
-        - name: APP_NAME
-          value: "MS Despacho"
+        # APP Configuration
         - name: APP_ENV
-          value: "production"
-        - name: APP_DEBUG
-          value: "false"
-        - name: APP_URL
-          value: "http://api.ambulance.com"
-
-        # Database
-        - name: DB_CONNECTION
-          value: "pgsql"
-        - name: DB_HOST
           valueFrom:
             configMapKeyRef:
               name: ms-despacho-config
-              key: db_host
+              key: APP_ENV
+        - name: APP_DEBUG
+          valueFrom:
+            configMapKeyRef:
+              name: ms-despacho-config
+              key: APP_DEBUG
+        - name: APP_URL
+          valueFrom:
+            configMapKeyRef:
+              name: ms-despacho-config
+              key: APP_URL
+        - name: APP_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: ms-despacho-config
+              key: APP_NAME
+
+        # Database Configuration
+        - name: DB_CONNECTION
+          valueFrom:
+            configMapKeyRef:
+              name: swii-config
+              key: DB_CONNECTION
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: swii-config
+              key: DB_HOST
         - name: DB_PORT
-          value: "5432"
+          valueFrom:
+            configMapKeyRef:
+              name: swii-config
+              key: DB_PORT
         - name: DB_DATABASE
           valueFrom:
             configMapKeyRef:
               name: ms-despacho-config
-              key: db_database
-        - name: DB_USERNAME
+              key: DB_DATABASE
+        - name: DB_CHARSET
           valueFrom:
             configMapKeyRef:
-              name: ms-despacho-config
-              key: db_username
+              name: swii-config
+              key: DB_CHARSET
+        - name: DB_ENCRYPT
+          valueFrom:
+            configMapKeyRef:
+              name: swii-config
+              key: DB_ENCRYPT
+        - name: DB_TRUST_SERVER_CERTIFICATE
+          valueFrom:
+            configMapKeyRef:
+              name: swii-config
+              key: DB_TRUST_SERVER_CERTIFICATE
+
+        # Database Credentials
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: swii-global-secrets
+              key: DB_USERNAME
         - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: ms-despacho-secret
-              key: db_password
+              name: swii-global-secrets
+              key: DB_PASSWORD
 
-        # Redis
+        # Redis Configuration
         - name: REDIS_HOST
           valueFrom:
             configMapKeyRef:
-              name: ms-despacho-config
-              key: redis_host
+              name: swii-config
+              key: REDIS_HOST
         - name: REDIS_PORT
-          value: "6379"
+          valueFrom:
+            configMapKeyRef:
+              name: swii-config
+              key: REDIS_PORT
         - name: REDIS_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: ms-despacho-secret
-              key: redis_password
-              optional: true
+              name: swii-global-secrets
+              key: REDIS_PASSWORD
+        - name: REDIS_CLIENT
+          valueFrom:
+            configMapKeyRef:
+              name: swii-config
+              key: REDIS_CLIENT
 
         # Cache & Queue
         - name: CACHE_STORE
           value: "redis"
         - name: QUEUE_CONNECTION
           value: "redis"
-        - name: BROADCAST_DRIVER
-          value: "reverb"
+        - name: BROADCAST_CONNECTION
+          value: "redis"
+
+        # Security Keys
+        - name: APP_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ms-despacho-secrets
+              key: APP_KEY
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: ms-despacho-secrets
+              key: JWT_SECRET
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ms-despacho-secrets
+              key: API_KEY
+
+        # GPS Configuration
+        - name: GPS_DISTANCE_UNIT
+          valueFrom:
+            configMapKeyRef:
+              name: ms-despacho-config
+              key: GPS_DISTANCE_UNIT
+        - name: GPS_MAX_DISTANCE
+          valueFrom:
+            configMapKeyRef:
+              name: ms-despacho-config
+              key: GPS_MAX_DISTANCE
 
         # Microservices URLs
-        - name: MS_AUTH_URL
+        - name: MS_AUTENTIFICACION_URL
           valueFrom:
             configMapKeyRef:
-              name: ms-despacho-config
-              key: ms_auth_url
-        - name: MS_DECISION_URL
-          valueFrom:
-            configMapKeyRef:
-              name: ms-despacho-config
-              key: ms_decision_url
+              name: swii-config
+              key: MS_AUTENTIFICACION_URL
         - name: MS_WEBSOCKET_URL
           valueFrom:
             configMapKeyRef:
-              name: ms-despacho-config
-              key: ms_websocket_url
-        - name: ML_SERVICE_URL
-          valueFrom:
-            configMapKeyRef:
-              name: ms-despacho-config
-              key: ml_service_url
+              name: swii-config
+              key: MS_WEBSOCKET_URL
 
         # Logging
         - name: LOG_CHANNEL
-          value: "stack"
+          valueFrom:
+            configMapKeyRef:
+              name: swii-config
+              key: LOG_CHANNEL
         - name: LOG_LEVEL
-          value: "info"
+          valueFrom:
+            configMapKeyRef:
+              name: swii-config
+              key: LOG_LEVEL
 
-        # Performance
-        - name: OPCACHE_VALIDATE_TIMESTAMPS
-          value: "0"
+        # CORS
+        - name: CORS_ALLOWED_ORIGINS
+          valueFrom:
+            configMapKeyRef:
+              name: swii-config
+              key: CORS_ALLOWED_ORIGINS
 
+        # ============================================
+        # Health Checks
+        # ============================================
+        livenessProbe:
+          exec:
+            command:
+            - php
+            - -r
+            - "exit(file_exists('bootstrap/cache/config.php') ? 0 : 1);"
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        readinessProbe:
+          exec:
+            command:
+            - php
+            - -r
+            - "exit(file_exists('bootstrap/cache/config.php') ? 0 : 1);"
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+
+        # ============================================
+        # Resources
+        # ============================================
         resources:
           requests:
             memory: "256Mi"
@@ -142,91 +271,41 @@ spec:
             memory: "512Mi"
             cpu: "500m"
 
-        livenessProbe:
-          httpGet:
-            path: /api/health
-            port: fpm
-            scheme: HTTP
-          initialDelaySeconds: 30
-          periodSeconds: 10
-          timeoutSeconds: 3
-          failureThreshold: 3
-
-        readinessProbe:
-          httpGet:
-            path: /api/health
-            port: fpm
-            scheme: HTTP
-          initialDelaySeconds: 10
-          periodSeconds: 5
-          timeoutSeconds: 2
-          failureThreshold: 2
-
-        startupProbe:
-          httpGet:
-            path: /api/health
-            port: fpm
-            scheme: HTTP
-          initialDelaySeconds: 0
-          periodSeconds: 10
-          timeoutSeconds: 3
-          failureThreshold: 30
-
+        # ============================================
+        # Volume Mounts
+        # ============================================
         volumeMounts:
         - name: storage
           mountPath: /app/storage
-          subPath: ms-despacho
         - name: logs
           mountPath: /app/storage/logs
-          subPath: ms-despacho
+        - name: cache
+          mountPath: /app/bootstrap/cache
 
-        # Security context for container
+        # ============================================
+        # Security Context
+        # ============================================
         securityContext:
           allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: false
-          runAsNonRoot: true
-          runAsUser: 33
+          readOnlyRootFilesystem: true
           capabilities:
             drop:
-              - ALL
+            - ALL
 
-      # Init container to run migrations
-      initContainers:
-      - name: migrate
-        image: registry.example.com/ms-despacho:latest
-        imagePullPolicy: IfNotPresent
-        command:
-          - sh
-          - -c
-          - "php artisan migrate --force"
-        env:
-        - name: DB_CONNECTION
-          value: "pgsql"
-        - name: DB_HOST
-          valueFrom:
-            configMapKeyRef:
-              name: ms-despacho-config
-              key: db_host
-        - name: DB_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: ms-despacho-secret
-              key: db_password
-        resources:
-          requests:
-            memory: "128Mi"
-            cpu: "100m"
-          limits:
-            memory: "256Mi"
-            cpu: "200m"
-
+      # ============================================
+      # Volumes
+      # ============================================
       volumes:
       - name: storage
         emptyDir: {}
       - name: logs
         emptyDir: {}
+      - name: cache
+        emptyDir: {}
 
-      # Pod disruption budget for high availability
+      # ============================================
+      # Affinity - High Availability
+      # ============================================
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -240,44 +319,18 @@ spec:
                   - ms-despacho
               topologyKey: kubernetes.io/hostname
 
-      terminationGracePeriodSeconds: 30
+      # ============================================
+      # Termination
+      # ============================================
       restartPolicy: Always
-      dnsPolicy: ClusterFirst
+      terminationGracePeriodSeconds: 30
 
 ---
-
+# ServiceAccount
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: ms-despacho
-  namespace: ambulance-system
-
----
-
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: ms-despacho-config
-  namespace: ambulance-system
-data:
-  db_host: "postgres.ambulance-system.svc.cluster.local"
-  db_database: "despacho_db"
-  db_username: "despacho_user"
-  redis_host: "redis.ambulance-system.svc.cluster.local"
-  ms_auth_url: "http://ms-auth-service.ambulance-system.svc.cluster.local"
-  ms_decision_url: "http://ms-decision-service.ambulance-system.svc.cluster.local"
-  ms_websocket_url: "http://ms-websocket-service.ambulance-system.svc.cluster.local"
-  ml_service_url: "http://ms-ml-service.ambulance-system.svc.cluster.local:5000"
-
----
-
-apiVersion: v1
-kind: Secret
-metadata:
-  name: ms-despacho-secret
-  namespace: ambulance-system
-type: Opaque
-data:
-  # base64 encoded values - CHANGE IN PRODUCTION
-  db_password: ZGVzcGFjaG9fcGFzcw==  # despacho_pass
-  redis_password: ""  # Empty if no password
+  namespace: swii-microservices
+  labels:
+    app: ms-despacho

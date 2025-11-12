@@ -1,45 +1,113 @@
-# Etapa base
-FROM php:8.2-fpm
+# ============================================
+# Dockerfile - MS Despacho
+# ============================================
+# Multi-stage build optimizado para PHP 8.3 + SQL Server + GPS
 
-# Instalar dependencias del sistema
-RUN apt-get update && apt-get install -y \
+ARG APP_ENV=production
+
+# STAGE 1: Builder
+FROM php:8.3-fpm-alpine AS builder
+
+# Instalar dependencias del sistema necesarias
+RUN apk add --no-cache \
+    build-base \
     curl \
-    libpng-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    libzip-dev \
-    libxml2-dev \
-    unzip \
     git \
-    && rm -rf /var/lib/apt/lists/*
+    composer \
+    freetds-dev \
+    oniguruma-dev \
+    libzip-dev
 
-# Instalar extensiones PHP nativas
+# Instalar dependencias para extensiones XML
+RUN apk add --no-cache libxml2-dev
+
+# Instalar extensiones PHP
 RUN docker-php-ext-install \
-    zip \
-    gd \
+    pdo_dblib \
+    mbstring \
     bcmath \
     ctype \
-    xml \
-    pdo \
-    pdo_mysql
+    fileinfo \
+    pcntl \
+    zip \
+    dom \
+    xml
 
-# Instalar Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# Verificar que todas las extensiones están cargadas
+RUN php -m | grep -E 'dom|tokenizer|session' || echo "Extensions missing" && \
+    echo "extension=dom" >> /usr/local/etc/php/conf.d/docker-php-ext-dom.ini && \
+    echo "extension=tokenizer" >> /usr/local/etc/php/conf.d/docker-php-ext-tokenizer.ini && \
+    echo "extension=session" >> /usr/local/etc/php/conf.d/docker-php-ext-session.ini
 
-# Establecer directorio de trabajo
 WORKDIR /app
 
-# Copiar archivos de la aplicación
+# Copiar archivos del proyecto
 COPY . .
 
-# Instalar dependencias de PHP (ignorar requerimientos de plataforma para SQL Server)
-RUN composer install --no-interaction --no-dev --optimize-autoloader --ignore-platform-reqs 2>&1 || true
+# Verificar extensiones instaladas
+RUN php -m
 
-# Establecer permisos
-RUN chown -R www-data:www-data /app \
-    && chmod -R 775 /app/storage /app/bootstrap/cache
+# Instalar dependencias de Composer (sin dev en production)
+# Ignoramos requisitos de plataforma ya que las extensiones están incluidas en PHP 8.3
+# Usamos --no-scripts para evitar que artisan se ejecute durante el build
+RUN if [ "$APP_ENV" = "production" ]; then \
+        composer install --no-dev --optimize-autoloader --no-interaction --no-progress --ignore-platform-reqs --no-scripts; \
+    else \
+        composer install --no-interaction --no-progress --ignore-platform-reqs --no-scripts; \
+    fi
 
-# Exponer puerto (usado por php-fpm)
+# STAGE 2: Runtime
+FROM php:8.3-fpm-alpine
+
+ARG APP_ENV=production
+
+# Instalar solo las librerías runtime necesarias
+RUN apk add --no-cache \
+    freetds \
+    oniguruma \
+    libzip \
+    curl \
+    supervisor
+
+# Instalar extensiones PHP
+RUN apk add --no-cache --virtual .build-deps \
+    build-base \
+    freetds-dev \
+    oniguruma-dev \
+    libzip-dev \
+    unixodbc-dev && \
+    docker-php-ext-install \
+    pdo_dblib \
+    mbstring \
+    bcmath \
+    ctype \
+    fileinfo \
+    pcntl \
+    zip && \
+    apk del .build-deps
+
+# Configuración PHP
+RUN echo "max_execution_time = 300" >> /usr/local/etc/php/conf.d/00-app.ini && \
+    echo "memory_limit = 512M" >> /usr/local/etc/php/conf.d/00-app.ini && \
+    echo "upload_max_filesize = 50M" >> /usr/local/etc/php/conf.d/00-app.ini && \
+    echo "post_max_size = 50M" >> /usr/local/etc/php/conf.d/00-app.ini
+
+# Copiar código compilado desde builder
+COPY --from=builder /app /app
+WORKDIR /app
+
+# Crear directorios necesarios
+RUN mkdir -p storage/logs bootstrap/cache && \
+    chown -R www-data:www-data /app/storage /app/bootstrap/cache /app/storage/logs
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD php -r "exit(file_exists('bootstrap/cache/config.php') ? 0 : 1);"
+
+# Cambiar usuario para mayor seguridad
+USER www-data
+
+# Exponer puerto FPM
 EXPOSE 9000
 
 # Comando por defecto
