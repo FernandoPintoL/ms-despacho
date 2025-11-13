@@ -98,7 +98,7 @@ RUN apk add --no-cache --virtual .build-deps \
     (docker-php-ext-enable json openssl filter hash tokenizer session iconv curl || true) && \
     apk del .build-deps
 
-# Habilitar extensiones PDO (pdo y pdo_dblib ya fueron compiladas en Stage 1)
+# Habilitar extensiones PDO (pdo y pdo_dblib compiladas en Stage 1)
 RUN docker-php-ext-enable pdo pdo_dblib
 
 # Configuración PHP
