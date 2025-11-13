@@ -72,17 +72,16 @@ RUN apk add --no-cache \
     curl \
     supervisor
 
-# Instalar extensiones PHP
-# Nota: iconv está compilado en PHP 8.3 y se habilitará en docker-php-ext-enable
+# Instalar solo las librerías de desarrollo necesarias (temporal para habilitar extensiones)
 RUN apk add --no-cache --virtual .build-deps \
     build-base \
     freetds-dev \
     oniguruma-dev \
     libzip-dev \
     libxml2-dev \
-    unixodbc-dev \
     icu-dev \
     openssl-dev && \
+    # Instalar extensiones
     docker-php-ext-install \
     pdo \
     pdo_dblib \
@@ -95,11 +94,11 @@ RUN apk add --no-cache --virtual .build-deps \
     dom \
     xml \
     intl && \
-    (docker-php-ext-enable json openssl filter hash tokenizer session iconv curl || true) && \
+    # Habilitar extensiones compiladas
+    docker-php-ext-enable pdo pdo_dblib mbstring bcmath ctype fileinfo pcntl zip dom xml intl && \
+    # json, openssl, filter, hash, tokenizer son built-in en PHP 8.3 - no es necesario habilitarlos explícitamente
+    # Limpiar dependencias de compilación
     apk del .build-deps
-
-# Habilitar extensiones PDO (pdo y pdo_dblib compiladas en Stage 1)
-RUN docker-php-ext-enable pdo pdo_dblib
 
 # Configuración PHP
 RUN echo "max_execution_time = 300" >> /usr/local/etc/php/conf.d/00-app.ini && \
