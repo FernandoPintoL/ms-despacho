@@ -1,0 +1,52 @@
+2025-11-13 03:29:55,962 INFO Set uid to user 82 succeeded
+2025-11-13 03:29:55,994 INFO supervisord started with pid 1
+2025-11-13 03:29:57,009 INFO spawned: 'nginx' with pid 7
+2025-11-13 03:29:57,010 INFO spawnerr: unknown error making dispatchers for 'php-fpm': EACCES
+2025-11-13 03:29:57,018 WARN exited: nginx (exit status 1; not expected)
+2025-11-13 03:30:02,352 INFO spawned: 'nginx' with pid 8
+2025-11-13 03:30:02,353 INFO spawnerr: unknown error making dispatchers for 'php-fpm': EACCES
+2025-11-13 03:30:02,360 WARN exited: nginx (exit status 1; not expected)
+2025-11-13 03:30:04,365 INFO spawned: 'nginx' with pid 15
+2025-11-13 03:30:04,370 INFO spawnerr: unknown error making dispatchers for 'php-fpm': EACCES
+2025-11-13 03:30:04,377 WARN exited: nginx (exit status 1; not expected)
+2025-11-13 03:30:07,387 INFO spawned: 'nginx' with pid 16
+2025-11-13 03:30:07,389 INFO spawnerr: unknown error making dispatchers for 'php-fpm': EACCES
+2025-11-13 03:30:07,393 INFO gave up: php-fpm entered FATAL state, too many start retries too quickly
+2025-11-13 03:30:07,401 WARN exited: nginx (exit status 1; not expected)
+2025-11-13 03:30:08,404 INFO gave up: nginx entered FATAL state, too many start retries too quickly
+2025-11-13 03:31:27,146 WARN received SIGQUIT indicating exit request
+2025-11-13 03:36:51,605 CRIT Supervisor is running as root.  Privileges were not dropped because no user is specified in the config file.  If you intend to run as root, you can set user=root in the config file to avoid this message.
+2025-11-13 03:36:51,612 INFO supervisord started with pid 1
+2025-11-13 03:36:52,620 INFO spawned: 'nginx' with pid 7
+2025-11-13 03:36:52,625 INFO spawned: 'php-fpm' with pid 8
+2025-11-13 03:36:52,652 WARN exited: nginx (exit status 1; not expected)
+2025-11-13 03:36:53,778 INFO spawned: 'nginx' with pid 9
+2025-11-13 03:36:53,981 INFO success: php-fpm entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-11-13 03:36:53,994 WARN exited: php-fpm (exit status 78; not expected)
+2025-11-13 03:36:54,057 INFO spawned: 'php-fpm' with pid 10
+2025-11-13 03:36:54,088 WARN exited: nginx (exit status 1; not expected)
+2025-11-13 03:36:54,426 WARN exited: php-fpm (exit status 78; not expected)
+2025-11-13 03:36:55,467 INFO spawned: 'php-fpm' with pid 11
+2025-11-13 03:36:56,701 INFO spawned: 'nginx' with pid 18
+2025-11-13 03:36:56,703 INFO success: php-fpm entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-11-13 03:36:56,706 WARN exited: php-fpm (exit status 78; not expected)
+2025-11-13 03:36:56,717 INFO spawned: 'php-fpm' with pid 19
+2025-11-13 03:36:56,719 WARN exited: nginx (exit status 1; not expected)
+2025-11-13 03:36:57,781 INFO success: php-fpm entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-11-13 03:36:57,783 WARN exited: php-fpm (exit status 78; not expected)
+2025-11-13 03:36:58,787 INFO spawned: 'php-fpm' with pid 20
+2025-11-13 03:36:59,890 INFO spawned: 'nginx' with pid 21
+2025-11-13 03:36:59,891 INFO success: php-fpm entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-11-13 03:36:59,891 WARN exited: php-fpm (exit status 78; not expected)
+2025-11-13 03:36:59,902 INFO spawned: 'php-fpm' with pid 22
+2025-11-13 03:36:59,921 WARN exited: nginx (exit status 1; not expected)
+2025-11-13 03:36:59,929 INFO gave up: nginx entered FATAL state, too many start retries too quickly
+2025-11-13 03:36:59,976 WARN exited: php-fpm (exit status 78; not expected)
+2025-11-13 03:37:00,979 INFO spawned: 'php-fpm' with pid 23
+2025-11-13 03:37:01,008 WARN exited: php-fpm (exit status 78; not expected)
+2025-11-13 03:37:03,012 INFO spawned: 'php-fpm' with pid 29
+2025-11-13 03:37:03,072 WARN exited: php-fpm (exit status 78; not expected)
+2025-11-13 03:37:06,078 INFO spawned: 'php-fpm' with pid 30
+2025-11-13 03:37:06,111 WARN exited: php-fpm (exit status 78; not expected)
+2025-11-13 03:37:07,112 INFO gave up: php-fpm entered FATAL state, too many start retries too quickly
+2025-11-13 03:43:28,784 WARN received SIGQUIT indicating exit request
